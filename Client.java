@@ -40,8 +40,8 @@ public void runClient() throws Exception {
                         {
                                 if (links.get(i).contains(clientChoice))
                                 {
-                                        String option = links.get(Integer.parseInt(clientChoice));
-                                        DatagramSocket clientSocket = new DatagramSocket();
+                                        String option = links.get(Integer.parseInt(clientChoice)).trim();
+                                        DatagramSocket clientSocket = new DatagramSocket(40291);
                                         InetAddress IPAddress = InetAddress.getByName("localhost");
 
                                         byte[] sendData = new byte[1024];
@@ -63,7 +63,7 @@ public void runClient() throws Exception {
 
                                         System.out.println("FROM SERVER:" + reply);
                                         clientSocket.close();
-
+                                        break;
                                 }
                         }
                 }
