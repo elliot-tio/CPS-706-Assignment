@@ -9,7 +9,7 @@ private static DatagramPacket receivePacket;
 private static DatagramSocket serverSocket;
 
 public static void main(String[] args) throws Exception {
-        new HisCinemaAuthoritativeDns().runUDPServer();
+        new HerCDNAuthoritativeDns().runUDPServer();
 }
 
 public void runUDPServer() throws Exception {
