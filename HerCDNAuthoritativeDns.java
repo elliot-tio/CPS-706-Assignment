@@ -23,14 +23,33 @@ public void runUDPServer() throws Exception {
                 File file = new File(filePath);
                 Scanner scan = new Scanner(file);
 
+                String returnip = "";
+                String value = "";
+                String message = receiveData().trim();
+
                 while(scan.hasNext()) {
-                        String line = scan.nextLine().toString(); //Error here!!!!
-                        if(line.contains(receiveData().trim())) {
-                                sendData(line);
-                                System.out.println("File sent successfully to: " + serverSocket.getInetAddress().getHostName());
+                        System.out.println("Incoming message " + message);
+                        String line = scan.nextLine().toString();
+                        if(line.contains(message)) {
+                                value = line.split(",")[1].trim();
                         }
                 }
                 scan.close();
+
+                scan = new Scanner(file);
+                // extract ip from records
+                if (!value.isEmpty()) {
+                        while(scan.hasNext()) {
+                                String line = scan.nextLine().toString();
+                                if(line.contains("A") && line.contains(value)) {
+                                        returnip = line.split(",")[1].trim();
+                                        System.out.print(returnip);
+                                        sendData(returnip);
+                                }
+                        }
+                }
+                scan.close();
+                //System.out.println("File sent successfully to: " + serverSocket.getInetAddress());
         }
 }
 
