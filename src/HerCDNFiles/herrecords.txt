@@ -1,0 +1,2 @@
+(herCDN.com,www.herCDN.com,CN)
+(www.herCDN.com,IPwwww,A)
