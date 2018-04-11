@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.Arrays;
 
 public class HerCDNAuthoritativeDns {
 private static final int PORT = 40294;
@@ -26,11 +27,11 @@ public void runUDPServer() throws Exception {
                 String returnip = "";
                 String value = "";
                 String message = receiveData().trim();
+                System.out.println("Incoming message " + message);
 
                 while(scan.hasNext()) {
-                        System.out.println("Incoming message " + message);
                         String line = scan.nextLine().toString();
-                        if(line.contains(message)) {
+                        if(line.contains(message) && !line.contains("A")) {
                                 value = line.split(",")[1].trim();
                         }
                 }
@@ -43,7 +44,7 @@ public void runUDPServer() throws Exception {
                                 String line = scan.nextLine().toString();
                                 if(line.contains("A") && line.contains(value)) {
                                         returnip = line.split(",")[1].trim();
-                                        System.out.print(returnip);
+                                        System.out.print("Returnip: " + returnip + "\n");
                                         sendData(returnip);
                                 }
                         }
@@ -69,7 +70,7 @@ public void sendData(String message) throws Exception {
         byte[] sendData = new byte[1024];
         InetAddress IPAddress = receivePacket.getAddress();
         int port = receivePacket.getPort();
-
+        System.out.print(port);
         sendData = message.getBytes();
 
         DatagramPacket sendPacket =

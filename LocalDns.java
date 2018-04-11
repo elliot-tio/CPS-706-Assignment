@@ -16,11 +16,11 @@ public static void main(String args[]) throws Exception
         DatagramSocket connectionSocket = new DatagramSocket(PORT_LOCAL_DNS);
         // connectionSocket.setSoTimeout(60000);
         System.out.println("Local DNS up and ready...");
-        byte[] receiveData = new byte[1024];
-        byte[] sendData = new byte[1024];
 
         while(true) {
 
+                byte[] receiveData = new byte[1024];
+                byte[] sendData = new byte[1024];
                 // accept request from client (string video.hiscinema.com)
                 // need to be prepared to accept requests in the form of records too
                 DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
@@ -28,14 +28,22 @@ public static void main(String args[]) throws Exception
                 String fullQuery = new String(packet.getData());
                 System.out.println("RECEIVED: " + fullQuery.trim() + "\n");
 
-                InetAddress clientIP = packet.getAddress();
-                int client_port = packet.getPort();
+                String parsedQuery = "";
 
-                // change this to get record based on query
-                // find ip address based on client request, format: video.hiscinema.com/F1
-                String parsedQuery = parseQuery(fullQuery);     // extracts "video.hiscinema.com" from query, full form
+                // extracts "hiscinema.com" from query, full form:
                 // "http://video.hiscinema.com/F1"
+                // also extracts "herCDN.com", full form:
+                // (video.hiscinema.com,herCDN.com,R)
+                if(!fullQuery.isEmpty() && !Character.isDigit(fullQuery.charAt(0))) {
+                        parsedQuery = parseQuery(fullQuery);
+                } else {
+                        parsedQuery = fullQuery.trim();
+                }
+
                 System.out.print("Parsed Query: " + parsedQuery + "\n");
+
+                // InetAddress queryIP = packet.getAddress();
+                // int queryPort = packet.getPort();
 
                 // obtain records from file
                 String filePath = "src/LocalDnsFiles/localrecords.txt";
@@ -44,14 +52,13 @@ public static void main(String args[]) throws Exception
 
                 if(parsedQuery.equalsIgnoreCase("hiscinema.com") || parsedQuery.equalsIgnoreCase("hercdn.com")) {
                         returnip = extract(parsedQuery, file);
-                        sendData = parsedQuery.getBytes();
                 } else {
-                        returnip = fullQuery.trim();
-                        sendData = fullQuery.getBytes();
+                        returnip = parsedQuery;
                 }
 
                 // grab target ip address based on records
                 InetAddress IPAddress = InetAddress.getByName(returnip);
+                sendData = parsedQuery.getBytes();
 
                 // currently swapping port targets based on query
                 // should target extracted ipaddress, which is authoritative DNS for hiscinema
@@ -72,17 +79,18 @@ public static void main(String args[]) throws Exception
                         System.out.print("Datagram sent to: " + IPAddress + " at port " + PORT_HER_AUTH + "\n");
                         connectionSocket.send(sendPacket);
                 }
-                // receive reply from hercdndns, which is ip address of content server, type a
+                // receive reply from hercdndns, which is ip address of content server, therefore send back to client
                 else {
                         DatagramPacket sendPacket =
-                                new DatagramPacket(sendData, sendData.length, InetAddress.getByName(parsedQuery), PORT_CLIENT);
-                        System.out.print("Datagram sent to: " + parsedQuery + " at port " + PORT_CLIENT + "\n");
+                                new DatagramPacket(sendData, sendData.length, IPAddress, PORT_CLIENT);
+                        System.out.print("Datagram sent to: " + IPAddress + " at port " + PORT_CLIENT + "\n");
                         connectionSocket.send(sendPacket);
                 }
         }
 }
 
 public static String parseQuery(String message){
+        // parases query if it has /
         if(message.contains("/")) {
                 String[] tokens = message.split("/");
                 String query = tokens[2].toString();
@@ -124,6 +132,4 @@ public static String extract(String parsedQuery, File file) throws Exception {
 
         return returnip;
 }
-
-
 }
