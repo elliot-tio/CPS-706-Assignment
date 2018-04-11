@@ -12,7 +12,7 @@ public static void main(String[] args) throws Exception {
 
 public void runTCPServer() throws Exception {
         ServerSocket welcomeSocket = new ServerSocket(PORT); // Create socket with port
-        // welcomeSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
+        //welcomeSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
 
         System.out.println("HisCinemaServer up and ready...");
 
@@ -36,6 +36,7 @@ public void run() {
                 BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
                 DataOutputStream outToClient = new DataOutputStream (connectionSocket.getOutputStream());
                 messageReceive = inFromClient.readLine();
+                System.out.print("Request: " + messageReceive + "\n");
 
                 if (messageReceive.split(" ").length == 3)
                 {

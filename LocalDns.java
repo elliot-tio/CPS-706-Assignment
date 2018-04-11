@@ -8,13 +8,14 @@ private static final int PORT_CLIENT = 40290;
 private static final int PORT_HIS_AUTH = 40293;
 private static final int PORT_HER_AUTH = 40294;
 private static final int PORT_LOCAL_DNS = 40295;
+public static String parsedRecord = "";
 
 public static void main(String args[]) throws Exception
 {
 
 
         DatagramSocket connectionSocket = new DatagramSocket(PORT_LOCAL_DNS);
-        // connectionSocket.setSoTimeout(60000);
+        //connectionSocket.setSoTimeout(60000);
         System.out.println("Local DNS up and ready...");
 
         while(true) {
@@ -26,21 +27,16 @@ public static void main(String args[]) throws Exception
                 DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
                 connectionSocket.receive(packet);
                 String fullQuery = new String(packet.getData());
-                System.out.println("RECEIVED: " + fullQuery.trim() + "\n");
 
                 String parsedQuery = "";
+                String queryName = "";
+                String queryType = "";
 
                 // extracts "hiscinema.com" from query, full form:
                 // "http://video.hiscinema.com/F1"
                 // also extracts "herCDN.com", full form:
                 // (video.hiscinema.com,herCDN.com,R)
-                if(!fullQuery.isEmpty() && !Character.isDigit(fullQuery.charAt(0))) {
-                        parsedQuery = parseQuery(fullQuery);
-                } else {
-                        parsedQuery = fullQuery.trim();
-                }
-
-                System.out.print("Parsed Query: " + parsedQuery + "\n");
+                parsedQuery = parseQuery(fullQuery);
 
                 // InetAddress queryIP = packet.getAddress();
                 // int queryPort = packet.getPort();
@@ -50,10 +46,24 @@ public static void main(String args[]) throws Exception
                 File file = new File(filePath);
                 String returnip = "";
 
-                if(parsedQuery.equalsIgnoreCase("hiscinema.com") || parsedQuery.equalsIgnoreCase("hercdn.com")) {
+                if(parsedQuery.equalsIgnoreCase("hiscinema.com")) {
                         returnip = extract(parsedQuery, file);
+                        queryName = parseName(parsedRecord);
+                        queryType = parseType(parsedRecord);
+                        System.out.print("Name: " + queryName + "\n");
+                        System.out.print("Type: " + queryType + "\n");
+                } else if (parsedQuery.equalsIgnoreCase("hercdn.com")) {
+                        returnip = extract(parsedQuery, file);
+                        queryName = parseName(fullQuery);
+                        queryType = parseType(fullQuery);
+                        System.out.print("Name: " + queryName + "\n");
+                        System.out.print("Type: " + queryType + "\n");
                 } else {
                         returnip = parsedQuery;
+                        queryName = parseName(fullQuery);
+                        queryType = parseType(fullQuery);
+                        System.out.print("Name: " + queryName + "\n");
+                        System.out.print("Type: " + queryType + "\n");
                 }
 
                 // grab target ip address based on records
@@ -69,21 +79,21 @@ public static void main(String args[]) throws Exception
                 if(parsedQuery.equalsIgnoreCase("hiscinema.com")) {
                         DatagramPacket sendPacket =
                                 new DatagramPacket(sendData, sendData.length, IPAddress, PORT_HIS_AUTH);
-                        System.out.print("Datagram sent to: " + IPAddress + " at port " + PORT_HIS_AUTH + "\n");
+                        System.out.print("Query passed to: " + IPAddress + " at port " + PORT_HIS_AUTH + "\n");
                         connectionSocket.send(sendPacket);
                 }
                 // send query to hercdndns
                 else if (parsedQuery.equalsIgnoreCase("hercdn.com")) {
                         DatagramPacket sendPacket =
                                 new DatagramPacket(sendData, sendData.length, IPAddress, PORT_HER_AUTH);
-                        System.out.print("Datagram sent to: " + IPAddress + " at port " + PORT_HER_AUTH + "\n");
+                        System.out.print("Query passed to: " + IPAddress + " at port " + PORT_HER_AUTH + "\n");
                         connectionSocket.send(sendPacket);
                 }
                 // receive reply from hercdndns, which is ip address of content server, therefore send back to client
                 else {
                         DatagramPacket sendPacket =
                                 new DatagramPacket(sendData, sendData.length, IPAddress, PORT_CLIENT);
-                        System.out.print("Datagram sent to: " + IPAddress + " at port " + PORT_CLIENT + "\n");
+                        System.out.print("Reply to: " + IPAddress + " at port " + PORT_CLIENT + "\n");
                         connectionSocket.send(sendPacket);
                 }
         }
@@ -105,6 +115,18 @@ public static String parseQuery(String message){
         }
 }
 
+public static String parseType(String record) {
+        String[] tokens = record.split(",");
+        String type = tokens[2].toString().trim().replace(")", "");
+        return type;
+}
+
+public static String parseName(String record) {
+        String[] tokens = record.split(",");
+        String name = tokens[0].toString().trim().replace("(", "");
+        return name;
+}
+
 public static String extract(String parsedQuery, File file) throws Exception {
         Scanner scan = new Scanner(file);
         String returnip = "";
@@ -114,6 +136,7 @@ public static String extract(String parsedQuery, File file) throws Exception {
                 String line = scan.nextLine().toString();
                 if(!line.contains("A") && line.contains(parsedQuery)) {
                         value = line.split(",")[1].trim();
+                        parsedRecord = line;
                 }
         }
         scan.close();

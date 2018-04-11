@@ -15,7 +15,7 @@ public static void main(String[] args) throws Exception {
 public void runUDPServer() throws Exception {
         serverSocket = new DatagramSocket(PORT);
 
-        // serverSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
+        //serverSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
         System.out.println("HisCinema Authoritative Server up and ready...");
 
         while(true) {
@@ -26,10 +26,11 @@ public void runUDPServer() throws Exception {
                 String message = receiveData().trim();
 
                 while(scan.hasNext()) {
-                        System.out.println("Incoming message " + message);
+                        System.out.println("Request: " + message);
                         String line = scan.nextLine().toString();
                         if(line.contains(message)) {
                                 sendData(line);
+                                System.out.print("Reply: " + line + "\n");
                                 //System.out.println("File sent successfully to: " + serverSocket.getInetAddress());
                         }
                 }

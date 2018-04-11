@@ -24,6 +24,9 @@ public static void main(String[] args) throws Exception {
 
 public void runClient() throws Exception {
 
+        // Client contacting dummy webserver message
+        System.out.print("Contacting www.hiscinema.com...\n");
+        System.out.print("Request: GET index.html HTTP/1.1\n");
         LinkedList<String> links = getIndexTCP();
 
         if (!links.isEmpty())
@@ -42,7 +45,7 @@ public void runClient() throws Exception {
                         {
                                 if (links.get(i).contains(clientChoice))
                                 {
-                                        String option = links.get(Integer.parseInt(clientChoice)).trim();
+                                        String option = links.get(Integer.parseInt(clientChoice) - 1).trim();
                                         DatagramSocket clientSocket = new DatagramSocket(PORT_HOME);
 
                                         byte[] sendData = new byte[1024];
@@ -55,16 +58,23 @@ public void runClient() throws Exception {
 
                                         clientSocket.send(sendPacket);
 
+                                        // Control message saying client selected a URL and contacts local DNS
+                                        String[] tokens = option.split("/");
+                                        String query = tokens[2].toString();
+                                        System.out.print("Query sent to Local DNS: " + query + "\n");
+
                                         DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                                         clientSocket.receive(receivePacket);
 
                                         String IPADDRESS_HER =
                                                 new String(receivePacket.getData());
 
-                                        System.out.println("FROM SERVER:" + IPADDRESS_HER);
+                                        // Control message for Local DNS reply with resolved IP address
+                                        System.out.print("Authoritative answer:\n");
+                                        System.out.println("Addresses: " + IPADDRESS_HER.trim() + "\n");
                                         clientSocket.close();
 
-                                        // getCDNFileTCP(links.get(i));
+                                        getCDNFileTCP(links.get(i));
                                         break;
                                 }
                         }
@@ -75,7 +85,7 @@ public void runClient() throws Exception {
 }
 
 
-public LinkedList<String> getIndexTCP() throws IOException     //HisCinemaServer
+public LinkedList<String> getIndexTCP() throws IOException //HisCinemaServer
 {
         InputStream inputStream;
         OutputStream outputStream;
@@ -95,156 +105,107 @@ public LinkedList<String> getIndexTCP() throws IOException     //HisCinemaServer
         outToServer.println("GET index.html HTTP/1.1");
         outToServer.flush();
 
-        bytes = new byte[1024 * 2];
+        bytes = new byte[1024 * 8];
         inputStream = clientSocket.getInputStream();
         outputStream = new FileOutputStream(file);
-        while ((count = inputStream.read(bytes)) >= 0) {
+        while ((count = inputStream.read(bytes)) >= 0)
+        {
                 outputStream.write(bytes, 0, count);
         }
 
         serverHTTPMessage = htmlParserHTTPMessage(file);
-        System.out.println("message from HisCinemaServer: " + serverHTTPMessage);
+        // Control message for dummy his cinema server reply with index
+        System.out.println("Response: " + serverHTTPMessage);
+        System.out.print("File: " + file.getName() + "\n\n");
         linksFromIndex = htmlParser(file);
         return linksFromIndex;
 }
 
 
-public void getCDNFileTCP(String videoLink) throws IOException     //HerCDNServer
+public void getCDNFileTCP(String videoLink) throws IOException //HerCDNServer
 {
-        InputStream inputStream;
-        OutputStream outputStream;
-        byte[] bytes;
         Socket clientSocket;
-        PrintWriter outToServer;
         int count;
-        File file = new File("src/ClientFiles/HerCDNIndex.html");
-        String serverHTTPMessage;
+        int fileRequestedNum = Integer.parseInt(videoLink.replaceAll("[\\D]", ""));
         String CDNServerName = "www.herCDN.com/F";
-
         clientSocket = new Socket(InetAddress.getByName(IPADDRESS_HER), PORT_HER);
-        outToServer = new PrintWriter(clientSocket.getOutputStream(), true); //outputs to server
+        String outHTTPRequest = "GET " + CDNServerName + fileRequestedNum + " HTTP/1.1\n";
+        // Control message - client contacts content server
+        System.out.print("Contacting www.herCDN.com...\n");
+        System.out.println("Request: " + outHTTPRequest);
 
 
-        String outHTTPRequest = "GET " + CDNServerName + Integer.parseInt(videoLink.replaceAll("[\\D]", "")) + " HTTP/1.1";
-        System.out.println("outHTTPRequest: " + outHTTPRequest);
+        //OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
+        BufferedWriter output = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+        //System.out.println("1");
+        output.write(outHTTPRequest);
+        output.newLine(); //IMPORTANT
+        output.flush();
+        //System.out.println("2");
+        //System.out.println("3");
 
-        outToServer.println(outHTTPRequest);
-        outToServer.flush();
+        String receivedFile = "src/ClientFiles/received" + fileRequestedNum + ".png";
 
-        /*
-           bytes = new byte[1024 * 16];
-           while ((count = inputStream.read(bytes)) >= 0) {
-            outputStream.write(bytes, 0, count);
-           }
-         */
+        InputStreamReader inputFromServer = new InputStreamReader(clientSocket.getInputStream());
+        BufferedReader bfInputFromServer = new BufferedReader(inputFromServer);
+        //System.out.println("4");
+        String serverResponse = bfInputFromServer.readLine();
+        System.out.println(serverResponse);
 
-        inputStream = clientSocket.getInputStream();
-        outputStream = new FileOutputStream(file);
-        long length = file.length();
-        byte[] bytes1 = new byte[16 * 1024];
-        int count1;
-        while ((count1 = inputStream.read(bytes1)) != -1) {
-                outputStream.write(bytes1, 0, count1);
+        File file = new File(receivedFile);
+
+        byte[] bytes = new byte[16 * 1024];
+        InputStream in = clientSocket.getInputStream();
+        OutputStream out = new FileOutputStream(receivedFile);
+        while ((count = in.read(bytes)) != -1)
+        {
+                out.write(bytes, 0, count);
         }
-
-        serverHTTPMessage = htmlParserHTTPMessage(file, Integer.parseInt(videoLink.replaceAll("[\\D]", "")));
-        System.out.println("message from HerCDNServer: " + serverHTTPMessage);
 }
 
 
-public LinkedList<String> htmlParser (File htmlFile) throws IOException
+public LinkedList<String> htmlParser(File htmlFile) throws IOException
 {
         LinkedList<String> links = new LinkedList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(htmlFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(htmlFile)))
+        {
                 String line;
-                while ((line = br.readLine()) != null) {
-                        if(!(line.contains("<") || line.contains("HTTP/1.1")))
+                while ((line = br.readLine()) != null)
+                {
+                        line = line.trim();
+                        if (!(line.contains("<") || line.contains("HTTP/1.1") || line.equals("")))
                                 links.add(line);
                 }
         }
-        System.out.println("list " + links);
+        System.out.println("Options: " + links);
         return links;
 }
 
-@SuppressWarnings("Duplicates")
-public String htmlParserHTTPMessage (File htmlFile) throws IOException
+public String htmlParserHTTPMessage(File htmlFile) throws IOException
 {
         String message = "";
         File file = new File("src/ClientFiles/HerCDNIndex.html");
-        try (BufferedReader br = new BufferedReader(new FileReader(htmlFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(htmlFile)))
+        {
                 String line;
-                while ((line = br.readLine()) != null) {
+                while ((line = br.readLine()) != null)
+                {
                         if (line.contains("200 OK HTTP/1.1"))
                         {
                                 message = "200 OK HTTP/1.1";
                                 break;
-                        }
-                        else if (line.contains("505 Version Not Supported HTTP/1.1"))
+                        } else if (line.contains("505 Version Not Supported HTTP/1.1"))
                         {
                                 message = "505 Version Not Supported HTTP/1.1";
                                 break;
-                        }
-                        else if (line.contains("400 BAD REQUEST HTTP/1.1"))
+                        } else if (line.contains("400 BAD REQUEST HTTP/1.1"))
                         {
                                 message = "400 BAD REQUEST HTTP/1.1";
                                 break;
-                        }
-                        else if (line.contains("404 File Not Found HTTP/1.1"))
+                        } else if (line.contains("404 File Not Found HTTP/1.1"))
                         {
                                 message = "404 File Not Found HTTP/1.1";
                                 break;
-                        }
-                }
-        }
-        return message;
-}
-
-@SuppressWarnings("Duplicates")
-public String htmlParserHTTPMessage (File htmlFile, int fileNum) throws IOException
-{
-        String message = "";
-        String filePath = "src/ClientFiles/" + fileNum + ".txt";
-
-        try (BufferedReader br = new BufferedReader(new FileReader(htmlFile))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                        if (line.contains("200 OK HTTP/1.1"))
-                        {
-                                message = "200 OK HTTP/1.1";
-                                break;
-                        }
-                        else if (line.contains("505 Version Not Supported HTTP/1.1"))
-                        {
-                                message = "505 Version Not Supported HTTP/1.1";
-                                break;
-                        }
-                        else if (line.contains("400 BAD REQUEST HTTP/1.1"))
-                        {
-                                message = "400 BAD REQUEST HTTP/1.1";
-                                break;
-                        }
-                        else if (line.contains("404 File Not Found HTTP/1.1"))
-                        {
-                                message = "404 File Not Found HTTP/1.1";
-                                break;
-                        }
-                        else
-                        {
-                                BufferedReader inputStream = new BufferedReader(new FileReader (htmlFile));
-                                File UIFile = new File(filePath);
-                                // if File doesnt exists, then create it
-                                if (!UIFile.exists()) {
-                                        UIFile.createNewFile();
-                                }
-                                FileWriter filewriter = new FileWriter(UIFile.getAbsoluteFile());
-                                BufferedWriter outputStream= new BufferedWriter(filewriter);
-                                String count;
-                                while ((count = inputStream.readLine()) != null) {
-                                        outputStream.write(count);
-                                }
-                                outputStream.flush();
-                                outputStream.close();
-                                inputStream.close();
                         }
                 }
         }

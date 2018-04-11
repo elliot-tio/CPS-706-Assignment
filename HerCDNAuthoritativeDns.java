@@ -16,7 +16,7 @@ public static void main(String[] args) throws Exception {
 public void runUDPServer() throws Exception {
         serverSocket = new DatagramSocket(PORT);
 
-        // serverSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
+        //serverSocket.setSoTimeout(60000); // Set timeout for server of 1 minute
         System.out.println("HerCDN Authoritative Server up and ready...");
 
         while(true) {
@@ -27,7 +27,7 @@ public void runUDPServer() throws Exception {
                 String returnip = "";
                 String value = "";
                 String message = receiveData().trim();
-                System.out.println("Incoming message " + message);
+                System.out.println("Request: " + message);
 
                 while(scan.hasNext()) {
                         String line = scan.nextLine().toString();
@@ -43,9 +43,9 @@ public void runUDPServer() throws Exception {
                         while(scan.hasNext()) {
                                 String line = scan.nextLine().toString();
                                 if(line.contains("A") && line.contains(value)) {
-                                        returnip = line.split(",")[1].trim();
-                                        System.out.print("Returnip: " + returnip + "\n");
-                                        sendData(returnip);
+                                        // returnip = line.split(",")[1].trim();
+                                        System.out.print("Reply: " + line + "\n");
+                                        sendData(line);
                                 }
                         }
                 }
@@ -70,7 +70,7 @@ public void sendData(String message) throws Exception {
         byte[] sendData = new byte[1024];
         InetAddress IPAddress = receivePacket.getAddress();
         int port = receivePacket.getPort();
-        System.out.print(port);
+
         sendData = message.getBytes();
 
         DatagramPacket sendPacket =
