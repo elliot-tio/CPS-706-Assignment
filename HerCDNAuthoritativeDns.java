@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.Scanner;
 
 public class HerCDNAuthoritativeDns {
-private static final int PORT = 40293;
+private static final int PORT = 40294;
 
 private static DatagramPacket receivePacket;
 private static DatagramSocket serverSocket;
