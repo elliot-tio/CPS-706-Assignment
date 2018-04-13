@@ -96,6 +96,11 @@ public class HerCDNServer implements Runnable
                         //outWriter.close();
                     }
                 }
+				else {
+                    OutputStreamWriter outToClient = new OutputStreamWriter(connectionSocket.getOutputStream());
+                    outToClient.write("400 BAD REQUEST HTTP/1.1");
+                    outToClient.close();
+                }
             }
         } catch (Exception e)
         {
