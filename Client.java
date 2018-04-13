@@ -6,9 +6,9 @@ public class Client
 {
 public static final int PORT_HOME = 40290;
 public static final String IPADDRESS_HOME = "localhost";
-public static final int PORT_HIS = 40291;
+public static final int PORT_HIS = 40291;                   // TCP
 public static final String IPADDRESS_HIS = "localhost";     //99.246.236.65
-public static final int PORT_HER = 40292;
+public static final int PORT_HER = 40292;                   // TCP
 public static final String IPADDRESS_HER = "localhost";     //99.246.236.65
 public static final int PORT_HIS_AUTH = 40293;
 public static final String IPADDRESS_HIS_AUTH = "localhost";
@@ -51,6 +51,7 @@ public void runClient() throws Exception {
                                         byte[] sendData = new byte[1024];
                                         byte[] receiveData = new byte[1024];
 
+                                        InetAddress IPADDRESS_LOCAL_DNS = clientSocket.getInetAddress();
                                         sendData = option.getBytes();
 
                                         DatagramPacket sendPacket =
