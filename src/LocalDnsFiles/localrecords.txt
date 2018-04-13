@@ -1,0 +1,4 @@
+(herCDN.com,NSherCDN.com,NS)
+(NSherCDN.com,127.0.0.1,A)
+(hiscinema.com,NShiscinema.com,NS)
+(NShiscinema.com,127.0.0.1,A)
